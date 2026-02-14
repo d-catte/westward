@@ -1,9 +1,10 @@
 use eframe::egui;
 use eframe::egui::{Image, RichText, Vec2};
 use egui_alignments::{center_horizontal, top_horizontal};
+use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use futures_util::StreamExt;
-use reqwest::blocking::Client;
 use reqwest::Response;
+use reqwest::blocking::Client;
 use semver::Version;
 use serde::Deserialize;
 use std::cmp::PartialEq;
@@ -14,29 +15,30 @@ use std::io::{BufReader, BufWriter, Read};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
-use std::process::{exit, Command};
+use std::process::{Command, exit};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
-use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use tokio::runtime::Runtime;
 
 const URL: &str = "https://api.github.com/repos/d-catte/Westward/releases/latest";
 static PROGRESS: LazyLock<Mutex<f32>> = LazyLock::new(|| Mutex::new(0.0));
 static RT: LazyLock<Mutex<Runtime>> = LazyLock::new(|| Mutex::new(Runtime::new().unwrap()));
-static IMAGES: LazyLock<[Image; 4]> = LazyLock::new(|| [
-    Image::new(egui::include_image!("../assets/ashHollowComplex.png")),
-    Image::new(egui::include_image!("../assets/chimneyRock.png")),
-    Image::new(egui::include_image!("../assets/courthouseAndJailRocks.png")),
-    Image::new(egui::include_image!("../assets/southPlatteRiver.png"))
-]);
-static WAGON: LazyLock<Image> = LazyLock::new(|| {
-    Image::new(egui::include_image!("../assets/wagonMove.png"))
+static IMAGES: LazyLock<[Image; 4]> = LazyLock::new(|| {
+    [
+        Image::new(egui::include_image!("../assets/ashHollowComplex.png")),
+        Image::new(egui::include_image!("../assets/chimneyRock.png")),
+        Image::new(egui::include_image!("../assets/courthouseAndJailRocks.png")),
+        Image::new(egui::include_image!("../assets/southPlatteRiver.png")),
+    ]
 });
-static STATUS: LazyLock<Mutex<Status>> = LazyLock::new(|| {
-    Mutex::new(Status::Default)
-});
+static WAGON: LazyLock<Image> =
+    LazyLock::new(|| Image::new(egui::include_image!("../assets/wagonMove.png")));
+static STATUS: LazyLock<Mutex<Status>> = LazyLock::new(|| Mutex::new(Status::Default));
 static CHANGE_LOG: LazyLock<Mutex<(String, CommonMarkCache)>> = LazyLock::new(|| {
-    Mutex::new((get_saved_changelog().unwrap_or_default(), CommonMarkCache::default()))
+    Mutex::new((
+        get_saved_changelog().unwrap_or_default(),
+        CommonMarkCache::default(),
+    ))
 });
 
 fn main() {
@@ -44,12 +46,11 @@ fn main() {
     let icon = eframe::icon_data::from_png_bytes(include_bytes!("../assets/icon.png"))
         .expect("Failed to load icon");
     let options = eframe::NativeOptions {
-
         viewport: egui::ViewportBuilder {
             inner_size: Some(Vec2::new(800.0, 600.0)),
             ..Default::default()
         }
-            .with_icon(Arc::new(icon)),
+        .with_icon(Arc::new(icon)),
         ..Default::default()
     };
     eframe::run_native(
@@ -63,9 +64,9 @@ fn main() {
             } else {
                 Ok(Box::new(App::create(Release::default())))
             }
-
         }),
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 fn check_for_updates(corrupt: bool) -> Option<(Release, Status)> {
@@ -79,10 +80,10 @@ fn check_for_updates(corrupt: bool) -> Option<(Release, Status)> {
             }
             if let Some(current_version) = get_current_version() {
                 if current_version < latest_version_tag {
-                    return Some((latest_release, Status::UpdateAvailable))
+                    return Some((latest_release, Status::UpdateAvailable));
                 }
             } else {
-                return Some((latest_release, Status::NotInstalled))
+                return Some((latest_release, Status::NotInstalled));
             }
         }
     }
@@ -93,7 +94,7 @@ fn install(latest_release: &Release, asset: &Asset) {
     let clone_url = asset.browser_download_url.clone();
     let release_clone = latest_release.clone();
     RT.lock().unwrap().spawn(async move {
-        if let Err(e) = download_latest_westward(&*clone_url).await {
+        if let Err(e) = download_latest_westward(&clone_url).await {
             eprintln!("Download failed: {}", e);
         } else {
             write_new_version(&release_clone);
@@ -116,7 +117,7 @@ fn write_new_version(release: &Release) {
                 let url = line
                     .split_whitespace()
                     .find(|word| word.starts_with("http"))
-                    .unwrap_or(&"");
+                    .unwrap_or("");
 
                 writeln!(writer, "[Full Changelog]({})", url).unwrap();
             } else {
@@ -153,12 +154,12 @@ fn get_saved_changelog() -> Option<String> {
 fn get_latest_release() -> Result<Release, Box<dyn Error>> {
     let client = Client::new();
 
-   let output: Release = client
-       .get(URL)
-       .header("User-Agent", "westward-updater")
-       .send()?
-       .error_for_status()?
-       .json()?;
+    let output: Release = client
+        .get(URL)
+        .header("User-Agent", "westward-updater")
+        .send()?
+        .error_for_status()?
+        .json()?;
     Ok(output)
 }
 
@@ -269,7 +270,6 @@ fn launch_westward() {
     }
 }
 
-
 #[derive(Debug, Deserialize, Clone)]
 struct Release {
     tag_name: String,
@@ -320,7 +320,14 @@ struct App {
 
 impl App {
     pub fn create(release: Release) -> Self {
-        Self {release, error: String::new(), patch_expanded: false, current_index: 0, last_switch_time: 0.0, transition_start: None }
+        Self {
+            release,
+            error: String::new(),
+            patch_expanded: false,
+            current_index: 0,
+            last_switch_time: 0.0,
+            transition_start: None,
+        }
     }
 }
 
@@ -342,19 +349,14 @@ impl eframe::App for App {
         egui::TopBottomPanel::top("title_bar")
             .exact_height(title_height)
             .show(ctx, |ui| {
-
                 let font_size = (title_height * 0.5).clamp(18.0, 72.0);
 
                 ui.with_layout(
                     egui::Layout::centered_and_justified(egui::Direction::TopDown),
                     |ui| {
-                        ui.add(
-                            egui::Label::new(
-                                RichText::new("Westward")
-                                    .size(font_size)
-                                    .strong()
-                            )
-                        );
+                        ui.add(egui::Label::new(
+                            RichText::new("Westward").size(font_size).strong(),
+                        ));
                     },
                 );
             });
@@ -375,27 +377,26 @@ impl eframe::App for App {
                 egui::ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
-                        CommonMarkViewer::new()
-                            .show(ui, &mut change_log.1, &text);
+                        CommonMarkViewer::new().show(ui, &mut change_log.1, &text);
                     });
             });
-
 
         // Taskbar
         egui::TopBottomPanel::bottom("taskbar")
             .exact_height(taskbar_height)
             .show(ctx, |ui| {
-
                 let button_height = taskbar_height * 0.6;
                 let button_width = ui.available_width() * 0.15;
 
                 center_horizontal(ui, |ui| {
-
                     let button_size = egui::vec2(button_width, button_height);
                     let mut status = STATUS.lock().unwrap();
 
                     if *status == Status::NotInstalled {
-                        if ui.add(egui::Button::new("Install").min_size(button_size)).clicked() {
+                        if ui
+                            .add(egui::Button::new("Install").min_size(button_size))
+                            .clicked()
+                        {
                             let asset = get_latest_version(&self.release);
                             if let Some(asset) = asset {
                                 *status = Status::Downloading;
@@ -405,26 +406,30 @@ impl eframe::App for App {
                                 *status = Status::FailedToDownload;
                             }
                         }
-                    } else if ui.add(egui::Button::new("Play").min_size(button_size)).clicked() {
+                    } else if ui
+                        .add(egui::Button::new("Play").min_size(button_size))
+                        .clicked()
+                    {
                         launch_westward();
                     }
 
-                    if *status == Status::UpdateAvailable {
-                        if ui.add(egui::Button::new("Update").min_size(button_size)).clicked() {
-                            let asset = get_latest_version(&self.release);
-                            if let Some(asset) = asset {
-                                *status = Status::Downloading;
-                                install(&self.release, &asset);
-                            } else {
-                                self.error = "No asset found".to_string();
-                                *status = Status::FailedToDownload;
-                            }
+                    if *status == Status::UpdateAvailable
+                        && ui
+                            .add(egui::Button::new("Update").min_size(button_size))
+                            .clicked()
+                    {
+                        let asset = get_latest_version(&self.release);
+                        if let Some(asset) = asset {
+                            *status = Status::Downloading;
+                            install(&self.release, &asset);
+                        } else {
+                            self.error = "No asset found".to_string();
+                            *status = Status::FailedToDownload;
                         }
                     }
                     drop(status);
                 });
             });
-
 
         // Main Carousel
         let now = ctx.input(|i| i.time);
@@ -471,7 +476,9 @@ impl eframe::App for App {
                     .clone()
                     .maintain_aspect_ratio(true)
                     .fit_to_exact_size(available)
-                    .tint(egui::Color32::from_white_alpha((255.0 * current_alpha) as u8))
+                    .tint(egui::Color32::from_white_alpha(
+                        (255.0 * current_alpha) as u8,
+                    ))
                     .paint_at(ui, rect);
 
                 IMAGES[next_index]
@@ -490,7 +497,6 @@ impl eframe::App for App {
             let painter = ui.painter_at(rect);
 
             if *STATUS.lock().unwrap() == Status::Downloading {
-
                 let progress = PROGRESS.lock().unwrap().clamp(0.0, 1.0);
 
                 let bar_height = available.y * 0.08 + 10.0;
@@ -500,11 +506,7 @@ impl eframe::App for App {
                     egui::pos2(rect.right(), rect.bottom()),
                 );
 
-                painter.rect_filled(
-                    bar_rect,
-                    0.0,
-                    egui::Color32::from_black_alpha(120),
-                );
+                painter.rect_filled(bar_rect, 0.0, egui::Color32::from_black_alpha(120));
 
                 let wagon_aspect = 2.0;
 
@@ -528,7 +530,6 @@ impl eframe::App for App {
 
                 ctx.request_repaint();
             }
-
         });
     }
 }
