@@ -17,6 +17,7 @@ use std::path::Path;
 use std::process::{exit, Command};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
+use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use tokio::runtime::Runtime;
 
 const URL: &str = "https://api.github.com/repos/d-catte/Westward/releases/latest";
@@ -34,8 +35,8 @@ static WAGON: LazyLock<Image> = LazyLock::new(|| {
 static STATUS: LazyLock<Mutex<Status>> = LazyLock::new(|| {
     Mutex::new(Status::Default)
 });
-static CHANGE_LOG: LazyLock<Mutex<String>> = LazyLock::new(|| {
-    Mutex::new(get_saved_changelog().unwrap_or_default())
+static CHANGE_LOG: LazyLock<Mutex<(String, CommonMarkCache)>> = LazyLock::new(|| {
+    Mutex::new((get_saved_changelog().unwrap_or_default(), CommonMarkCache::default()))
 });
 
 fn main() {
@@ -105,17 +106,29 @@ fn write_new_version(release: &Release) {
     let file = File::create("version").unwrap();
     let mut writer = BufWriter::new(file);
 
-    writeln!(writer, "{}", release.tag_name).unwrap();
+    writeln!(writer, "# {}", release.tag_name).unwrap();
 
     if let Some(body) = &release.body {
         writeln!(writer).unwrap();
-        writeln!(writer, "{}", body).unwrap();
+
+        for line in body.lines() {
+            if line.contains("Full Changelog") {
+                let url = line
+                    .split_whitespace()
+                    .find(|word| word.starts_with("http"))
+                    .unwrap_or(&"");
+
+                writeln!(writer, "[Full Changelog]({})", url).unwrap();
+            } else {
+                writeln!(writer, "{}", line).unwrap();
+            }
+        }
     }
 
     writer.flush().unwrap();
-    *CHANGE_LOG.lock().unwrap() = get_saved_changelog().unwrap_or_default();
-}
 
+    CHANGE_LOG.lock().unwrap().0 = get_saved_changelog().unwrap_or_default();
+}
 
 fn get_current_version() -> Option<Version> {
     let file = File::open("version").ok()?;
@@ -124,7 +137,7 @@ fn get_current_version() -> Option<Version> {
     let mut first_line = String::new();
     reader.read_line(&mut first_line).ok()?;
 
-    Version::parse(first_line.trim()).ok()
+    Version::parse(first_line.replace("# ", "").trim()).ok()
 }
 
 fn get_saved_changelog() -> Option<String> {
@@ -356,11 +369,14 @@ impl eframe::App for App {
                     }
                 });
 
-                let change_log = CHANGE_LOG.lock().unwrap();
+                let mut change_log = CHANGE_LOG.lock().unwrap();
+                let text = change_log.0.clone();
+                ui.style_mut().url_in_tooltip = true;
                 egui::ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
-                        ui.label(change_log.clone());
+                        CommonMarkViewer::new()
+                            .show(ui, &mut change_log.1, &text);
                     });
             });
 
