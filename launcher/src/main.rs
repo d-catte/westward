@@ -254,7 +254,7 @@ fn launch_westward() {
         cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
 
         cmd.spawn().expect("Failed to launch Westward");
-        std::process::exit(0);
+        exit(0);
     }
 
     #[cfg(not(target_os = "windows"))]
