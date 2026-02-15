@@ -14,6 +14,8 @@ use std::io::{BufRead, Write};
 use std::io::{BufReader, BufWriter, Read};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+use std::env;
 use std::path::Path;
 use std::process::{Command, exit};
 use std::sync::{Arc, LazyLock, Mutex};
