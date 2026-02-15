@@ -13,3 +13,4 @@ serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.48.0", features = ["rt-multi-thread"] }
 futures-util = "0.3.31"
 egui_commonmark = "0.22.0"
+app_data = "0.1.1"

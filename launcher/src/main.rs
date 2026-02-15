@@ -1,3 +1,4 @@
+use app_data::AppData;
 use eframe::egui;
 use eframe::egui::{Image, RichText, Vec2};
 use egui_alignments::{center_horizontal, top_horizontal};
@@ -8,14 +9,14 @@ use reqwest::blocking::Client;
 use semver::Version;
 use serde::Deserialize;
 use std::cmp::PartialEq;
+#[cfg(target_os = "windows")]
+use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, Write};
 use std::io::{BufReader, BufWriter, Read};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
-#[cfg(target_os = "windows")]
-use std::env;
 use std::path::Path;
 use std::process::{Command, exit};
 use std::sync::{Arc, LazyLock, Mutex};
@@ -41,6 +42,11 @@ static CHANGE_LOG: LazyLock<Mutex<(String, CommonMarkCache)>> = LazyLock::new(||
         get_saved_changelog().unwrap_or_default(),
         CommonMarkCache::default(),
     ))
+});
+static APP_DATA: LazyLock<AppData> = LazyLock::new(|| {
+    let app_data = AppData::new("Westward");
+    app_data.ensure_data_dir().unwrap();
+    app_data
 });
 
 fn main() {
@@ -106,7 +112,7 @@ fn install(latest_release: &Release, asset: &Asset) {
 }
 
 fn write_new_version(release: &Release) {
-    let file = File::create("version").unwrap();
+    let file = File::create(APP_DATA.get_file_path("version").unwrap()).unwrap();
     let mut writer = BufWriter::new(file);
 
     writeln!(writer, "# {}", release.tag_name).unwrap();
@@ -134,7 +140,7 @@ fn write_new_version(release: &Release) {
 }
 
 fn get_current_version() -> Option<Version> {
-    let file = File::open("version").ok()?;
+    let file = File::open(APP_DATA.get_file_path("version").unwrap()).ok()?;
     let mut reader = BufReader::new(file);
 
     let mut first_line = String::new();
@@ -144,7 +150,7 @@ fn get_current_version() -> Option<Version> {
 }
 
 fn get_saved_changelog() -> Option<String> {
-    let file = File::open("version").ok()?;
+    let file = File::open(APP_DATA.get_file_path("version").unwrap()).ok()?;
     let mut reader = BufReader::new(file);
 
     let mut contents = String::new();
@@ -192,17 +198,13 @@ fn get_latest_version(release: &Release) -> Option<Asset> {
 }
 
 pub async fn download_latest_westward(url: &str) -> Result<(), Box<dyn Error>> {
-    let extension_type = if cfg!(target_os = "windows") {
-        ".exe"
+    let filename = if cfg!(target_os = "windows") {
+        "westward.exe".to_string()
     } else {
-        ""
+        "westward".to_string()
     };
 
-    let path = if extension_type.is_empty() {
-        "westward".to_string()
-    } else {
-        format!("westward{}", extension_type)
-    };
+    let path = APP_DATA.get_file_path(&filename)?;
 
     println!("Connecting to GitHub for download: {}", url);
     let client = reqwest::Client::new();
@@ -244,7 +246,8 @@ pub async fn download_latest_westward(url: &str) -> Result<(), Box<dyn Error>> {
 fn launch_westward() {
     #[cfg(target_os = "windows")]
     {
-        let exe = ".\\westward.exe";
+        let file = crate::APP_DATA.get_file_path("westward.exe").unwrap();
+        let exe = format!(".\\{}", file.display());
         let mut cmd = Command::new(exe);
         cmd.current_dir(env::current_dir().unwrap());
 
@@ -258,8 +261,9 @@ fn launch_westward() {
 
     #[cfg(not(target_os = "windows"))]
     {
-        let exe = "./westward";
-        let _ = Command::new("chmod").arg("+x").arg(exe).status();
+        let file = APP_DATA.get_file_path("westward").unwrap();
+        let exe = format!("./{}", file.display());
+        let _ = Command::new("chmod").arg("+x").arg(&exe).status();
 
         // Detach from parent terminal
         Command::new("setsid")
