@@ -98,6 +98,15 @@ jobs:
           path: |
             native/*westward-${{ steps.gradle_version.outputs.version }}*
 
+  launcher:
+    name: Build Westward Launcher - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest, macos-15-intel ]
+
+    steps:
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
@@ -131,25 +140,25 @@ jobs:
             <dict>
           <key>CFBundleName</key>
           <string>$APP_NAME</string>
-      
+
           <key>CFBundleExecutable</key>
           <string>$BIN_NAME</string>
-      
+
           <key>CFBundleIdentifier</key>
           <string>io.github.dcatte.westward.launcher</string>
-      
+
           <key>CFBundleVersion</key>
           <string>1.0.0</string>
-      
+
           <key>CFBundleShortVersionString</key>
           <string>1.0.0</string>
-      
+
           <key>CFBundlePackageType</key>
           <string>APPL</string>
-      
+
           <key>CFBundleIconFile</key>
           <string>icon</string>
-      
+
           <key>LSMinimumSystemVersion</key>
           <string>11.0</string>
           </dict>
@@ -163,7 +172,7 @@ jobs:
           xattr -dr com.apple.quarantine "$APP_DIR"
 
           brew install create-dmg
-      
+
           create-dmg \
           --volname "$APP_NAME" \
           --volicon "launcher/output/icon.icns" \
