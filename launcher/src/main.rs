@@ -254,7 +254,6 @@ fn launch_westward() {
         cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
 
         cmd.spawn().expect("Failed to launch Westward");
-        exit(0);
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -267,9 +266,8 @@ fn launch_westward() {
             .arg(exe)
             .spawn()
             .expect("Failed to launch Westward");
-
-        exit(0);
     }
+    exit(0);
 }
 
 #[derive(Debug, Deserialize, Clone)]
