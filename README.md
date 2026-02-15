@@ -10,7 +10,7 @@ It provides modern rendering techniques such as immediate mode rendering and dyn
 - 250MB of RAM available
 - OpenAL capable GPU/CPU
 - OpenGL 2 capable GPU
-- 20MB storage available
+- 100MB storage available
 
 ## Learn More
 We have a [wiki](https://github.com/d-catte/Westward-Wiki/wiki)!
