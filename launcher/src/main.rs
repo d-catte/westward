@@ -9,8 +9,6 @@ use reqwest::blocking::Client;
 use semver::Version;
 use serde::Deserialize;
 use std::cmp::PartialEq;
-#[cfg(target_os = "windows")]
-use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, Write};
@@ -246,10 +244,9 @@ pub async fn download_latest_westward(url: &str) -> Result<(), Box<dyn Error>> {
 fn launch_westward() {
     #[cfg(target_os = "windows")]
     {
-        let file = crate::APP_DATA.get_file_path("westward.exe").unwrap();
-        let exe = format!(".\\{}", file.display());
+        let path = APP_DATA.get_file_path("westward.exe").unwrap();
+        let exe = path.to_str().unwrap();
         let mut cmd = Command::new(exe);
-        cmd.current_dir(env::current_dir().unwrap());
 
         // Detach from parent console
         const DETACHED_PROCESS: u32 = 0x00000008;
