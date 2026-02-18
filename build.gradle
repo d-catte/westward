@@ -36,15 +36,14 @@ switch (OperatingSystem.current()) {
 }
 
 dependencies {
-    implementation "io.github.spair:imgui-java-app:1.90.0"
+    implementation 'io.github.spair:imgui-java-app:1.90.0'
     implementation 'com.google.code.gson:gson:2.13.2'
     implementation 'org.slf4j:slf4j-api:2.0.17'
-    implementation 'org.slf4j:slf4j-simple:2.0.17'
+    runtimeOnly 'org.slf4j:slf4j-simple:2.0.17'
+    runtimeOnly 'com.github.trilarion:java-vorbis-support:1.2.1'
 
     implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
-    implementation "org.lwjgl:lwjgl-openal"
-    implementation "org.lwjgl:lwjgl-stb"
-    runtimeOnly "org.lwjgl:lwjgl-openal::$lwjglNatives"
+    implementation 'org.lwjgl:lwjgl-stb'
     runtimeOnly "org.lwjgl:lwjgl-stb::$lwjglNatives"
 }
 

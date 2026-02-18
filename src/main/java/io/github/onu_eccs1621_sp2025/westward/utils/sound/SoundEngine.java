@@ -4,22 +4,16 @@ import io.github.onu_eccs1621_sp2025.westward.utils.Config;
 import io.github.onu_eccs1621_sp2025.westward.utils.DebugLogger;
 import io.github.onu_eccs1621_sp2025.westward.utils.registry.Registry;
 
-import org.lwjgl.openal.AL;
-import org.lwjgl.openal.AL10;
-import org.lwjgl.openal.ALC;
-import org.lwjgl.openal.ALC10;
-
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
+import javax.sound.sampled.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 
-import static org.lwjgl.system.MemoryUtil.NULL;
-
 /**
- * Manages the audio playback for the game using OpenAL
+ * Manages the audio playback for the game using Java Clip API
  * @author Dylan Catte
  * @since 1.0.0 Beta 1
- * @version 2.0
+ * @version 3.0
  */
 public final class SoundEngine {
 
@@ -32,58 +26,34 @@ public final class SoundEngine {
      */
     public static final int[] SFX_VOLUME   = { Config.getConfig().getSfxVolume() };
 
-    private static long device;
-    private static long context;
-
     // For music
-    private static int musicBuffer = 0;
-    private static int musicSource = 0;
     private static String lastMusicId;
+    private static Clip lastMusic;
 
     // For SFX
-    private static int sfxBuffer = 0;
-    private static int sfxSource = 0;
     private static String lastSfxId;
+    private static Clip lastSfx;
 
     // Force skip if sound system failed
     private static boolean skipSounds = false;
 
     /**
-     * Initialize OpenAL device + context. Call once at game startup.
+     * Initialize SoundEngine class
      */
-    public static void init() {
-        try {
-            device = ALC10.alcOpenDevice((ByteBuffer) null);
-            if (device == NULL) {
-                throw new IllegalStateException("Failed to open the default OpenAL device.");
-            }
-            var attribs = (IntBuffer) null;
-            context = ALC10.alcCreateContext(device, attribs);
-            ALC10.alcMakeContextCurrent(context);
-            AL.createCapabilities(ALC.createCapabilities(device));
-            DebugLogger.info("OpenAL initialized.");
-        } catch (Exception e) {
-            DebugLogger.warn("Failed to initialize OpenAL: " + e.getMessage());
-            skipSounds = true;
-        }
-    }
+    public static void init() {}
 
     /**
-     * Clean up OpenAL resources. Calls at shutdown.
+     * Clean up sound resources. Calls at shutdown.
      */
     public static void destroy() {
         if (!skipSounds) {
-            AL10.alSourceStop(musicSource);
-            AL10.alSourcei(musicSource, AL10.AL_BUFFER, 0);
-            AL10.alSourceStop(sfxSource);
-            AL10.alSourcei(sfxSource, AL10.AL_BUFFER, 0);
-            AL10.alDeleteSources(musicSource);
-            AL10.alDeleteSources(sfxSource);
-            AL10.alDeleteBuffers(musicBuffer);
-            AL10.alDeleteBuffers(sfxBuffer);
+            if (lastMusic != null && lastMusic.isOpen()) {
+                lastMusic.close();
+            }
 
-            ALC10.alcDestroyContext(context);
-            ALC10.alcCloseDevice(device);
+            if (lastSfx != null && lastSfx.isOpen()) {
+                lastSfx.close();
+            }
         }
     }
 
@@ -100,9 +70,82 @@ public final class SoundEngine {
             // restart
             playMusic();
         } else {
+            if (lastMusic != null) {
+                lastMusic.close();
+            }
             lastMusicId = songId;
             Path path = (Path) Registry.getAsset(Registry.AssetType.AUDIO, songId);
-            process(path, loop, true);
+            try {
+                lastMusic = load(path);
+                process(loop, true);
+            } catch (IOException | UnsupportedAudioFileException | LineUnavailableException exception) {
+                DebugLogger.warn("Failed to load song: ", exception.getMessage());
+                skipSounds  = true;
+            }
+        }
+    }
+
+    private static Clip load(Path path)
+            throws IOException, UnsupportedAudioFileException, LineUnavailableException {
+
+        String name = path.toString().toLowerCase();
+
+        if (name.endsWith(".wav")) {
+            return loadWav(path);
+        } else if (name.endsWith(".ogg")) {
+            return loadOgg(path);
+        } else {
+            throw new UnsupportedAudioFileException("Unsupported format: " + name);
+        }
+    }
+
+    private static Clip loadWav(Path path)
+            throws IOException, UnsupportedAudioFileException, LineUnavailableException {
+
+        try (AudioInputStream in = AudioSystem.getAudioInputStream(path.toFile())) {
+            Clip clip = AudioSystem.getClip();
+            clip.open(in);
+            return clip;
+        }
+    }
+
+    private static Clip loadOgg(Path path)
+            throws IOException, UnsupportedAudioFileException, LineUnavailableException {
+
+        try (AudioInputStream in = AudioSystem.getAudioInputStream(path.toFile())) {
+             AudioFormat baseFormat = in.getFormat();
+
+             AudioFormat decodedFormat = new AudioFormat(
+                     AudioFormat.Encoding.PCM_SIGNED,
+                     baseFormat.getSampleRate(),
+                     16,
+                     baseFormat.getChannels(),
+                     baseFormat.getChannels() * 2,
+                     baseFormat.getSampleRate(),
+                     false
+                );
+
+             try (AudioInputStream din =
+                          AudioSystem.getAudioInputStream(decodedFormat, in)) {
+
+                 ByteArrayOutputStream out = new ByteArrayOutputStream();
+                 byte[] buffer = new byte[4096];
+                 int bytesRead;
+
+                 while ((bytesRead = din.read(buffer)) != -1) {
+                     out.write(buffer, 0, bytesRead);
+                 }
+
+                 byte[] audioBytes = out.toByteArray();
+
+                 if (audioBytes.length == 0) {
+                     throw new IOException("Decoded OGG produced 0 PCM bytes: " + path);
+                 }
+
+                 Clip clip = AudioSystem.getClip();
+                 clip.open(decodedFormat, audioBytes, 0, audioBytes.length);
+                 return clip;
+             }
         }
     }
 
@@ -117,9 +160,18 @@ public final class SoundEngine {
         if (sfxId.equals(lastSfxId)) {
             playSFX();
         } else {
+            if (lastSfx != null) {
+                lastSfx.close();
+            }
             lastSfxId = sfxId;
             Path path = (Path) Registry.getAsset(Registry.AssetType.SFX, sfxId);
-            process(path, false, false);
+            try {
+                lastSfx = load(path);
+                process(false, false);
+            } catch (IOException | UnsupportedAudioFileException | LineUnavailableException exception) {
+                DebugLogger.warn("Failed to load SFX: ", exception.getMessage());
+                skipSounds = true;
+            }
         }
     }
 
@@ -130,42 +182,27 @@ public final class SoundEngine {
     public static void loadRandomSong(final boolean loop) {
         if (!skipSounds) {
             final Path song = (Path) Registry.randomAsset(Registry.AssetType.AUDIO);
-            process(song, loop, true);
+            try {
+                lastMusic = load(song);
+                process(loop, true);
+            } catch (IOException | LineUnavailableException | UnsupportedAudioFileException ignored) {
+            }
         }
     }
 
-    private static void process(final Path filePath, boolean shouldLoop, boolean music) {
-        // Reset previous
+    private static void process(boolean shouldLoop, boolean music) {
         if (music) {
+            // Reset music
             stopMusic();
-            if (musicBuffer != 0) {
-                AL10.alDeleteBuffers(musicBuffer);
-                AL10.alDeleteSources(musicSource);
+            if (shouldLoop) {
+                lastMusic.loop(Clip.LOOP_CONTINUOUSLY);
             }
-        } else {
-            if (sfxBuffer != 0) {
-                AL10.alDeleteBuffers(sfxBuffer);
-                AL10.alDeleteSources(sfxSource);
-            }
-        }
-
-        // Load PCM data from WAV file
-        int bufferId = SimpleWavLoader.loadWavToOpenALBuffer(filePath.toFile());
-        int source = AL10.alGenSources();
-        AL10.alSourcei(source, AL10.AL_BUFFER, bufferId);
-
-        if (shouldLoop) {
-            AL10.alSourcei(source, AL10.AL_LOOPING, AL10.AL_TRUE);
-        }
-
-        if (music) {
-            musicBuffer = bufferId;
-            musicSource = source;
             updateMusicVolume();
             playMusic();
         } else {
-            sfxBuffer = bufferId;
-            sfxSource = source;
+            if (shouldLoop) {
+                lastSfx.loop(Clip.LOOP_CONTINUOUSLY);
+            }
             updateSfxVolume();
             playSFX();
         }
@@ -175,48 +212,51 @@ public final class SoundEngine {
         if (skipSounds) {
             return;
         }
-        AL10.alSourceStop(musicSource);
-        AL10.alSourceRewind(musicSource);
-        AL10.alSourcePlay(musicSource);
+        lastMusic.setFramePosition(0);
+        lastMusic.start();
     }
 
     /**
      * Stops the currently playing music
      */
     public static void stopMusic() {
-        if (musicSource != 0) {
-            AL10.alSourceStop(musicSource);
-        }
+        lastMusic.stop();
     }
 
     private static void playSFX() {
         if (skipSounds) {
             return;
         }
-        AL10.alSourceStop(sfxSource);
-        AL10.alSourceRewind(sfxSource);
-        AL10.alSourcePlay(sfxSource);
+        lastSfx.setFramePosition(0);
+        lastSfx.start();
     }
 
     /**
      * Refreshes the music's volume
      */
     public static void updateMusicVolume() {
-        if (musicSource != 0) {
-            float gain = MUSIC_VOLUME[0] / 100f;
-            AL10.alSourcef(musicSource, AL10.AL_GAIN, gain);
-        }
+        setClipVolume(lastMusic, MUSIC_VOLUME[0] / 100.0F);
     }
 
     /**
      * Refreshes the sfx's volume
      */
     public static void updateSfxVolume() {
-        if (sfxSource != 0) {
-            float gain = SFX_VOLUME[0] / 100f;
-            AL10.alSourcef(sfxSource, AL10.AL_GAIN, gain);
+        setClipVolume(lastSfx, SFX_VOLUME[0] / 100.0F);
+    }
+
+    private static void setClipVolume(Clip clip, float volume) {
+        if (volume <= 0.0F) {
+            volume = 0.0001F;
+        }
+
+        if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+            FloatControl gainControl =
+                    (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+            gainControl.setValue(20.0F * (float) Math.log10(volume));
         }
     }
+
 
     /**
      * Invalidates cached id data

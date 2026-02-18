@@ -2,7 +2,6 @@ package io.github.onu_eccs1621_sp2025.westward.game;
 
 import com.google.gson.annotations.SerializedName;
 import io.github.onu_eccs1621_sp2025.westward.data.StatusContainer;
-import io.github.onu_eccs1621_sp2025.westward.data.member.Member;
 import io.github.onu_eccs1621_sp2025.westward.utils.ShallowClone;
 import io.github.onu_eccs1621_sp2025.westward.utils.registry.Registry;
 import io.github.onu_eccs1621_sp2025.westward.utils.text.Translations;

@@ -291,7 +291,7 @@ public class Registry {
     }
 
     /**
-     * Loads WAV file paths
+     * Loads OGG file paths
      */
     public static void loadAudio() {
         // Load audio

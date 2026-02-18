@@ -603,9 +603,6 @@
       "glob": "META-INF/windows/x64/org/lwjgl/lwjgl.dll.sha1"
     },
     {
-      "glob": "META-INF/windows/x64/org/lwjgl/openal/OpenAL.dll.sha1"
-    },
-    {
       "glob": "META-INF/windows/x64/org/lwjgl/opengl/lwjgl_opengl.dll.sha1"
     },
     {
@@ -675,9 +672,6 @@
       "glob": "windows/x64/org/lwjgl/lwjgl.dll"
     },
     {
-      "glob": "windows/x64/org/lwjgl/openal/OpenAL.dll"
-    },
-    {
       "glob": "windows/x64/org/lwjgl/opengl/lwjgl_opengl.dll"
     },
     {
@@ -706,12 +700,6 @@
     },
     {
       "glob": "linux/x64/org/lwjgl/stb/liblwjgl_stb.so"
-    },
-    {
-      "glob": "META-INF/linux/x64/org/lwjgl/openal/libOpenAL.so.sha1"
-    },
-    {
-      "glob": "linux/x64/org/lwjgl/openal/libOpenAL.so"
     },
     {
       "module": "java.desktop",
