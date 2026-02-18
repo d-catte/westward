@@ -6,9 +6,8 @@ It features a completely data-driven JSON-based registry for adding or modifying
 It provides modern rendering techniques such as immediate mode rendering and dynamic FPS to provide a smooth, streamlined experience.
 
 ## Requirements
-- x86_64 (Windows, Linux) or aarch64 (MacOS)
+- x86_64 (Windows, Linux, macOS) or aarch64 (macOS)
 - 250MB of RAM available
-- OpenAL capable GPU/CPU
 - OpenGL 2 capable GPU
 - 100MB storage available
 
