@@ -36,7 +36,7 @@ public class TrailApplication extends Application {
     /**
      * The build version of Westward
      */
-    private static final String VERSION = "v1.0.0-beta.1";
+    private static final String VERSION = "v1.0.0-beta.4";
     /**
      * The path to all local game data files
      */
