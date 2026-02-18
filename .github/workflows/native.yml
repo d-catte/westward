@@ -131,10 +131,10 @@ jobs:
             source: target/release/launcher.exe
             artifact_name: westward-launcher-windows.exe
           - os: macos-latest
-            source: target/release/launcher
+            source: launcher/output/launcher.dmg
             artifact_name: westward-launcher-macos-arm.dmg
           - os: macos-15-intel
-            source: target/release/launcher
+            source: launcher/output/launcher.dmg
             artifact_name: westward-launcher-macos-intel.dmg
 
     steps:
