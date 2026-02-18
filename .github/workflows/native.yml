@@ -125,10 +125,10 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            source: target/release/launcher
+            source: launcher/target/release/launcher
             artifact_name: westward-launcher-ubuntu
           - os: windows-latest
-            source: target/release/launcher.exe
+            source: launcher/target/release/launcher.exe
             artifact_name: westward-launcher-windows.exe
           - os: macos-latest
             source: launcher.dmg
