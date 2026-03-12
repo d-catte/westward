@@ -49,8 +49,8 @@ body {
 .os ul li {
     border: solid 2px #ddd;
     border-radius: 6px;
-    margin-bottom: 10%;
-    padding: 8px 16px;
+    margin-bottom: 0.5em;
+    padding: 0.5em 1em;
     text-align: center;
 }
 .os ul li:hover {
