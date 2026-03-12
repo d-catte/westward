@@ -1,7 +1,7 @@
 async function makeDownloadButtons() {
-    const res = await fetch("https://api.github.com/repos/d-catte/Westward/releases/latest");
+    const res = await fetch("https://api.github.com/repos/d-catte/westward/releases/latest");
     const release = await res.json();
-    const urlBase = `https://github.com/d-catte/Westward/releases/download/${release.tag_name}`;
+    const urlBase = `https://github.com/d-catte/westward/releases/download/${release.tag_name}`;
 
     const windowsList = document.createElement('ul');
     if (release.assets.some(asset => asset.name === "westward-launcher-windows.exe")) {
