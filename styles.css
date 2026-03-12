@@ -1,0 +1,55 @@
+body {
+    margin: 0 auto;
+    padding: 0 2% 2%;
+    font-family: Roboto, sans-serif;
+}
+@media screen and (min-width: 768px) {
+    body {
+        width: 50%;
+    }
+}
+@media screen and (max-width: 768px) {
+    body {
+        width: 90%;
+    }
+}
+
+#download {
+    display: flex;
+    justify-content: center;
+}
+
+.os {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 20px;
+    padding: 4% 4% 0;
+    border-radius: 16px;
+    background-color: #1f3d60;
+    color: #ddd;
+
+}
+.os svg {
+    fill: #ddd;
+    height: 30%;
+}
+.os ul {
+    list-style-type: none;
+    margin-bottom: 0;
+    padding-left: 0;
+}
+.os ul li {
+    border: solid 2px #ddd;
+    border-radius: 6px;
+    margin-bottom: 10%;
+    padding: 8px 16px;
+    text-align: center;
+}
+.os ul li:hover {
+    background-color: steelblue;
+}
+.os ul a {
+    text-decoration: none;
+    color: #ddd;
+}
