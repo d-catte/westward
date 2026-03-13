@@ -9,6 +9,7 @@ body {
     margin: 0 auto;
     padding: 0 2% 2%;
     font-family: Roboto, sans-serif;
+    color: #ddd;
 }
 @media screen and (min-width: 768px) {
     body {
@@ -19,6 +20,10 @@ body {
     body {
         width: 90%;
     }
+}
+
+.center {
+    text-align: center;
 }
 
 #download {
@@ -34,8 +39,6 @@ body {
     padding: 4% 4% 0;
     border-radius: 16px;
     background-color: #1f3d60;
-    color: #ddd;
-
 }
 .os svg {
     fill: #ddd;
@@ -53,10 +56,18 @@ body {
     padding: 0.5em 1em;
     text-align: center;
 }
-.os ul li:hover {
+.os ul li:hover, #archive div:hover {
     background-color: steelblue;
 }
-.os ul a {
+.os ul a, #archive {
     text-decoration: none;
     color: #ddd;
+}
+
+#archive div {
+    margin: 3% 30%;
+    padding: 2%;
+    border-radius: 16px;
+    background-color: #1f3d60;
+    font-size: 1.25em;
 }
