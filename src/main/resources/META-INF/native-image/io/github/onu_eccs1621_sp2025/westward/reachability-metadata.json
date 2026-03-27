@@ -170,7 +170,7 @@
           "name": "<init>",
           "parameterTypes": [
             "java.lang.String",
-            "io.github.onu_eccs1621_sp2025.westward.game.$ItemType",
+            "io.github.onu_eccs1621_sp2025.westward.game.ItemStack$ItemType",
             "float"
           ]
         }
