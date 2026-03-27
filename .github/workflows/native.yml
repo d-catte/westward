@@ -72,12 +72,12 @@ jobs:
           echo "Project version: $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
         
-      # Switch to GraalVM 26 for native-image
-      - name: Set up GraalVM 26
+      # Switch to GraalVM 25 for native-image
+      - name: Set up GraalVM 25
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
-          java-version: 'latest-ea'
+          java-version: '25.0.1'
           cache: 'gradle'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
