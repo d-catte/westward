@@ -1,0 +1,118 @@
+name: "Westward Launcher"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  launcher:
+    name: Build Westward Launcher - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            source: launcher/target/release/launcher
+            artifact_name: westward-launcher-ubuntu
+          - os: windows-latest
+            source: launcher/target/release/launcher.exe
+            artifact_name: westward-launcher-windows.exe
+          - os: macos-latest
+            source: launcher.dmg
+            artifact_name: westward-launcher-macos-arm.dmg
+          - os: macos-15-intel
+            source: launcher.dmg
+            artifact_name: westward-launcher-macos-intel.dmg
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Compile Native Launcher
+        run: cargo build --release
+        working-directory: launcher
+
+      - name: Create macOS .app and DMG
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERT: ${{ secrets.MACOS_CERT }}
+          MACOS_CERT_PASS: ${{ secrets.MACOS_CERT_PASS }}
+        run: |
+          APP_NAME="Westward Launcher"
+          BIN_NAME="launcher"
+          APP_DIR="launcher/output/${APP_NAME}.app"
+
+          mkdir -p "$APP_DIR/Contents/MacOS"
+          mkdir -p "$APP_DIR/Contents/Resources"
+
+          cp launcher/target/release/$BIN_NAME "$APP_DIR/Contents/MacOS/$BIN_NAME"
+          chmod +x "$APP_DIR/Contents/MacOS/$BIN_NAME"
+
+          cp launcher/output/icon.icns "$APP_DIR/Contents/Resources/icon.icns"
+
+          cat > "$APP_DIR/Contents/Info.plist" <<EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+          <key>CFBundleName</key>
+          <string>$APP_NAME</string>
+
+          <key>CFBundleExecutable</key>
+          <string>$BIN_NAME</string>
+
+          <key>CFBundleIdentifier</key>
+          <string>io.github.dcatte.westward.launcher</string>
+
+          <key>CFBundleVersion</key>
+          <string>1.0.0</string>
+
+          <key>CFBundleShortVersionString</key>
+          <string>1.0.0</string>
+
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+
+          <key>CFBundleIconFile</key>
+          <string>icon</string>
+
+          <key>LSMinimumSystemVersion</key>
+          <string>11.0</string>
+          </dict>
+          </plist>
+          EOF
+
+          echo "$MACOS_CERT" | base64 --decode > /tmp/certificate.p12
+          security import /tmp/certificate.p12 -k ~/Library/Keychains/login.keychain-db -P "$MACOS_CERT_PASS" -T /usr/bin/codesign
+          security find-certificate -c "Westward Developers" ~/Library/Keychains/login.keychain-db
+          # KEYCHAIN_PATH=~/Library/Keychains/login.keychain-db codesign -v --deep --force --verify --sign "Westward Developers" "$APP_DIR"
+          xattr -dr com.apple.quarantine "$APP_DIR"
+
+          brew install create-dmg
+
+          create-dmg \
+          --volname "$APP_NAME" \
+          --volicon "launcher/output/icon.icns" \
+          --background "launcher/output/background.png" \
+          --window-size 600 400 \
+          --icon-size 128 \
+          --icon "$APP_NAME.app" 200 200 \
+          --app-drop-link 400 200 \
+          "launcher.dmg" \
+          "launcher/output"
+
+      - name: Rename
+        shell: bash
+        run: |
+          mkdir dist
+          mv ${{ matrix.source }} dist/${{ matrix.artifact_name }}
+
+      - name: Upload Native Launcher
+        uses: actions/upload-artifact@v7
+        with:
+          name: westward-launcher-${{ matrix.os }}
+          path: dist/${{ matrix.artifact_name }}
