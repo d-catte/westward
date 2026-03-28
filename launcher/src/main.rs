@@ -259,7 +259,7 @@ fn launch_westward() {
     #[cfg(not(target_os = "windows"))]
     {
         let file = APP_DATA.get_file_path("westward").unwrap();
-        let exe = file.display();
+        let exe = format!("{}", );
         let _ = Command::new("chmod").arg("+x").arg(&exe).status();
 
         // Detach from parent terminal
