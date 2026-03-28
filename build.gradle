@@ -2,12 +2,12 @@ import org.gradle.internal.os.OperatingSystem
 
 plugins {
     id 'java'
-    id 'com.gradleup.shadow' version '9.3.1'
-    id 'org.graalvm.buildtools.native' version '0.11.4'
+    id 'com.gradleup.shadow' version '9.4.1'
+    id 'org.graalvm.buildtools.native' version '0.11.5'
 }
 
 group = 'io.github.onu_eccs1621_sp2025.westward'
-version = '1.0.0-beta.4'
+version = '1.0.0-beta.5'
 
 project.ext.lwjglVersion = "3.4.1"
 
@@ -91,6 +91,8 @@ graalvmNative {
 
             // Advanced options
             buildArgs.add('--link-at-build-time')
+            buildArgs.add('--enable-native-access=ALL-UNNAMED')
+            buildArgs.add('--initialize-at-build-time=org.lwjgl,org.lwjgl.glfw')
 
             useFatJar = true
         }

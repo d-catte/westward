@@ -533,7 +533,16 @@
       "allDeclaredFields": true
     },
     {
+      "type": "org.lwjgl.system.MemoryUtil",
+      "allDeclaredMethods": true
+    },
+    {
       "type": "org.lwjgl.system.CallbackI"
+    },
+    {
+      "type": "org.lwjgl.glfw.GLFWErrorCallback",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true
     },
     {
       "type": "org.lwjgl.system.jemalloc.JEmallocAllocator"
