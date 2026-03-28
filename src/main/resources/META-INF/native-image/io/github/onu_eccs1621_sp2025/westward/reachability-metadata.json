@@ -616,6 +616,9 @@
       "glob": "META-INF/windows/x64/org/lwjgl/opengl/lwjgl_opengl.dll.sha1"
     },
     {
+      "glob": "META-INF/windows/x64/org/lwjgl/opengl/lwjgl_openal.dll.sha1"
+    },
+    {
       "glob": "META-INF/windows/x64/org/lwjgl/stb/lwjgl_stb.dll.sha1"
     },
     {
@@ -685,6 +688,9 @@
       "glob": "windows/x64/org/lwjgl/opengl/lwjgl_opengl.dll"
     },
     {
+      "glob": "windows/x64/org/lwjgl/opengl/lwjgl_openal.dll"
+    },
+    {
       "glob": "windows/x64/org/lwjgl/stb/lwjgl_stb.dll"
     },
     {
@@ -697,6 +703,9 @@
       "glob": "META-INF/linux/x64/org/lwjgl/opengl/liblwjgl_opengl.so.sha1"
     },
     {
+      "glob": "META-INF/linux/x64/org/lwjgl/opengl/liblwjgl_openal.so.sha1"
+    },
+    {
       "glob": "META-INF/linux/x64/org/lwjgl/stb/liblwjgl_stb.so.sha1"
     },
     {
@@ -707,6 +716,9 @@
     },
     {
       "glob": "linux/x64/org/lwjgl/opengl/liblwjgl_opengl.so"
+    },
+    {
+      "glob": "linux/x64/org/lwjgl/opengl/liblwjgl_openal.so"
     },
     {
       "glob": "linux/x64/org/lwjgl/stb/liblwjgl_stb.so"
