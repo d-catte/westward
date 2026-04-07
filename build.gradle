@@ -15,25 +15,58 @@ repositories {
     mavenCentral()
 }
 
-switch (OperatingSystem.current()) {
-    case OperatingSystem.LINUX:
-        project.ext.lwjglNatives = "natives-linux"
-        def osArch = System.getProperty("os.arch")
-        if (osArch.startsWith("arm") || osArch.startsWith("aarch64")) {
-            project.ext.lwjglNatives += osArch.contains("64") || osArch.startsWith("armv8") ? "-arm64" : "-arm32"
-        } else if  (osArch.startsWith("ppc")) {
-            project.ext.lwjglNatives += "-ppc64le"
-        } else if  (osArch.startsWith("riscv")) {
-            project.ext.lwjglNatives += "-riscv64"
-        }
-        break
-    case OperatingSystem.MAC_OS:
-        project.ext.lwjglNatives = System.getProperty("os.arch").startsWith("aarch64") ? "natives-macos-arm64" : "natives-macos"
-        break
-    case OperatingSystem.WINDOWS:
-        project.ext.lwjglNatives = "natives-windows"
-        break
+def allNatives = [
+        "natives-windows",
+        "natives-macos",
+        "natives-macos-arm64",
+        "natives-linux",
+        "natives-linux-arm64"
+]
+
+def os = [
+        "windows",
+        "macos",
+        "macos-arm64",
+        "linux",
+        "linux-arm64",
+        "freebsd"
+]
+
+configurations {
+    nativesCurrent {
+        extendsFrom implementation
+    }
+    nativesAll {
+        extendsFrom implementation
+    }
 }
+
+static def currentNatives() {
+    def os = OperatingSystem.current()
+    def arch = System.getProperty("os.arch")
+
+    if (os.isWindows()) return ["natives-windows"]
+
+    if (os.isMacOsX()) {
+        return [arch.startsWith("aarch64") ? "natives-macos-arm64" : "natives-macos"]
+    }
+
+    if (os.isLinux()) {
+        def base = "natives-linux"
+        if (arch.startsWith("arm") || arch.startsWith("aarch64")) {
+            base += (arch.contains("64") || arch.startsWith("armv8")) ? "-arm64" : "-arm32"
+        } else if (arch.startsWith("ppc")) {
+            base += "-ppc64le"
+        } else if (arch.startsWith("riscv")) {
+            base += "-riscv64"
+        }
+        return [base]
+    }
+
+    throw new GradleException("Unsupported OS: $os")
+}
+
+
 
 dependencies {
     implementation 'io.github.spair:imgui-java-app:1.90.0'
@@ -45,8 +78,18 @@ dependencies {
     implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
     implementation 'org.lwjgl:lwjgl-stb'
     implementation "org.lwjgl:lwjgl-openal"
-    runtimeOnly "org.lwjgl:lwjgl-stb::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-openal::$lwjglNatives"
+
+    // Current OS natives
+    currentNatives().each { n ->
+        nativesCurrent "org.lwjgl:lwjgl-stb::$n"
+        nativesCurrent "org.lwjgl:lwjgl-openal::$n"
+    }
+
+    // Universal natives
+    allNatives.each { n ->
+        nativesAll "org.lwjgl:lwjgl-stb::$n"
+        nativesAll "org.lwjgl:lwjgl-openal::$n"
+    }
 }
 
 shadowJar {
@@ -98,5 +141,119 @@ graalvmNative {
 
             useFatJar = true
         }
+    }
+}
+
+static def getCurrentOSFolder() {
+    def os = OperatingSystem.current()
+    if (os.isWindows()) return "windows"
+    if (os.isMacOsX()) return System.getProperty("os.arch").startsWith("aarch64") ? "macos-arm64" : "macos"
+    if (os.isLinux()) return System.getProperty("os.arch").contains("arm") ? "linux-arm64" : "linux"
+    return "unknown"
+}
+
+def currentOSFolder = getCurrentOSFolder()
+
+tasks.register('nativeShadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    group = 'build'
+    description = 'Jar with only current OS natives'
+
+    archiveFileName.set('westward.jar')
+    from(sourceSets.main.output)
+    configurations = [project.configurations.runtimeClasspath]
+
+    from({
+        project.configurations.nativesCurrent.collect { zipTree(it) }
+    }) {
+        include "**/*"
+
+        eachFile { fileCopyDetails ->
+            def segments = fileCopyDetails.relativePath.segments as List
+
+            // Keep .sha1 files in META-INF
+            if (fileCopyDetails.name.endsWith(".sha1")) return
+
+            if (segments[0].toLowerCase() == "meta-inf") segments = segments.drop(1)
+
+            // Detect OS folder
+            def osIndex = segments.findIndexOf { it.toLowerCase().startsWith(currentOSFolder.toLowerCase()) }
+            if (osIndex >= 0) {
+                // Move everything for the current OS to root
+                segments = segments.drop(osIndex)
+                fileCopyDetails.relativePath = new RelativePath(true, *segments)
+            } else {
+                fileCopyDetails.exclude()
+            }
+        }
+
+        includeEmptyDirs = false
+    }
+
+    doLast {
+        def jarFile = archiveFile.get().asFile
+
+        def tmpDir = new File(layout.buildDirectory.get().asFile, "tmp/nativeShadowJar")
+        if (tmpDir.exists()) tmpDir.deleteDir()
+        tmpDir.mkdirs()
+
+        copy {
+            from zipTree(jarFile)
+            into tmpDir
+        }
+
+        // Delete all folders that aren't the current OS
+        tmpDir.listFiles().findAll { it.isDirectory() && os.contains(it.name.toLowerCase()) && it.name.toLowerCase() != currentOSFolder.toLowerCase() }
+                .each { it.deleteDir() }
+        def metaInf = new File(tmpDir, "META-INF")
+        if (metaInf.exists()) {
+            metaInf.listFiles().findAll { it.isDirectory() && os.contains(it.name.toLowerCase()) && it.name.toLowerCase() != currentOSFolder.toLowerCase() }
+                    .each { it.deleteDir() }
+        }
+
+        // Repack the jar
+        ant.zip(destfile: jarFile, basedir: tmpDir)
+        tmpDir.deleteDir()
+    }
+
+    manifest {
+        attributes 'Main-Class': 'io.github.onu_eccs1621_sp2025.westward.TrailApplication'
+    }
+}
+
+tasks.register('universalShadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    group = 'build'
+    description = 'Jar with ALL natives'
+
+    archiveFileName.set('westward-universal.jar')
+    from(sourceSets.main.output)
+    configurations = [project.configurations.runtimeClasspath]
+
+    from({
+        project.configurations.nativesAll.collect { zipTree(it) }
+    }) {
+        include "**/*"
+
+        eachFile { fileCopyDetails ->
+            def segments = fileCopyDetails.relativePath.segments as List
+
+            // Keep .sha1 files in META-INF
+            if (fileCopyDetails.name.endsWith(".sha1")) return
+
+            if (segments[0].toLowerCase() == "meta-inf") segments = segments.drop(1)
+
+            // Detect OS folders
+            def osIndex = segments.findIndexOf { it.toLowerCase() in os }
+            if (osIndex >= 0) {
+                // Move everything under OS folder to root path
+                segments = segments.drop(osIndex)
+                fileCopyDetails.relativePath = new RelativePath(true, *segments)
+            }
+        }
+
+        includeEmptyDirs = false
+    }
+
+    manifest {
+        attributes 'Main-Class': 'io.github.onu_eccs1621_sp2025.westward.TrailApplication'
     }
 }
