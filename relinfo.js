@@ -51,4 +51,8 @@ async function makeDownloadButtons() {
         macList.appendChild(a);
     }
     document.getElementById("macos").appendChild(macList);
+
+    if (release.assets.some(asset => asset.name === `westward-${release.tag_name}.jar`)) {
+        document.getElementById("jar").setAttribute("href", `${urlBase}/westward-${release.tag_name}.jar`);
+    }
 }

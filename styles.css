@@ -60,15 +60,15 @@ a {
     padding: 0.5em 1em;
     text-align: center;
 }
-.os ul li:hover, #archive div:hover {
+.os ul li:hover, .other-downloads div:hover {
     background-color: steelblue;
 }
-.os ul a, #archive {
+.os ul a, .other-downloads {
     text-decoration: none;
     color: #ddd;
 }
 
-#archive div {
+.other-downloads div {
     margin: 3% 30%;
     padding: 2%;
     border-radius: 16px;
