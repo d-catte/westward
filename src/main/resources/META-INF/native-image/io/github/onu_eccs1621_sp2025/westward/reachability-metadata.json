@@ -670,6 +670,9 @@
       "glob": "io/imgui/java/native-bin/libimgui-java64.so"
     },
     {
+      "glob": "io/imgui/java/native-bin/libimgui-java64.dylib"
+    },
+    {
       "glob": "opengl32.dll"
     },
     {
@@ -692,6 +695,36 @@
     },
     {
       "glob": "windows/x64/org/lwjgl/stb/lwjgl_stb.dll"
+    },
+    {
+      "glob": "macos/x64/org/lwjgl/glfw/libglfw.dylib"
+    },
+    {
+      "glob": "macos/x64/org/lwjgl/liblwjgl.dylib"
+    },
+    {
+      "glob": "macos/x64/org/lwjgl/opengl/liblwjgl_opengl.dylib"
+    },
+    {
+      "glob": "macos/x64/org/lwjgl/openal/libopenal.dylib"
+    },
+    {
+      "glob": "macos/x64/org/lwjgl/stb/liblwjgl_stb.dylib"
+    },
+    {
+      "glob": "macos/arm64/org/lwjgl/glfw/libglfw.dylib"
+    },
+    {
+      "glob": "macos/arm64/org/lwjgl/liblwjgl.dylib"
+    },
+    {
+      "glob": "macos/arm64/org/lwjgl/opengl/liblwjgl_opengl.dylib"
+    },
+    {
+      "glob": "macos/arm64/org/lwjgl/openal/libopenal.dylib"
+    },
+    {
+      "glob": "macos/arm64/org/lwjgl/stb/liblwjgl_stb.dylib"
     },
     {
       "glob": "META-INF/linux/x64/org/lwjgl/glfw/libglfw.so.sha1"
