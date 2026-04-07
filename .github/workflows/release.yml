@@ -81,7 +81,7 @@ jobs:
         id: gradle_version
         shell: bash
         run: |
-          version=$(find dist -name "westward-*" | sed 's/westward-//' | sed 's/.jar//')
+          version=$(find . -name "westward-*" | sed 's/westward-//' | sed 's/.jar//')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up GraalVM 25
@@ -101,13 +101,13 @@ jobs:
         run: |
           mkdir "%GITHUB_WORKSPACE%\tmp"
           mkdir -p native
-          native-image --link-at-build-time -jar dist/westward-${{ steps.gradle_version.outputs.version }}.jar native/westward-${{ steps.gradle_version.outputs.version }}
+          native-image --link-at-build-time -jar westward-${{ steps.gradle_version.outputs.version }}.jar native/westward-${{ steps.gradle_version.outputs.version }}
 
       - name: Build Native (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir -p native
-          native-image --link-at-build-time -jar dist/westward-${{ steps.gradle_version.outputs.version }}.jar native/westward-${{ steps.gradle_version.outputs.version }}
+          native-image --link-at-build-time -jar westward-${{ steps.gradle_version.outputs.version }}.jar native/westward-${{ steps.gradle_version.outputs.version }}
 
       - name: Rename binary
         shell: bash
