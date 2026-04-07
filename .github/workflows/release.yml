@@ -36,7 +36,14 @@ jobs:
       - name: Compile Jar
         run: gradle build --no-daemon --stacktrace
 
-      - name: Rename jar
+      - name: Get Project Version
+        id: gradle_version
+        shell: bash
+        run: |
+          version=$(gradle properties -q | grep '^version:' | awk '{print $2}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Rename Jar
         shell: bash
         run: |
           VERSION="${{ steps.gradle_version.outputs.version }}"
@@ -44,7 +51,7 @@ jobs:
           FILE=$(ls build/libs/westward.jar)
           mv "$FILE" "dist/westward-${VERSION}.jar"
 
-      - name: Upload jar
+      - name: Upload Jar
         uses: actions/upload-artifact@v7
         with:
           name: westward
@@ -85,16 +92,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Download jar
+      - name: Download Jar
         uses: actions/download-artifact@v8
         with:
           name: westward
 
-      - name: Get project version
+      - name: Get Project Version
         id: gradle_version
         shell: bash
         run: |
-          version=$(find . -name "westward-*" | sed 's/westward-//' | sed 's/.jar//')
+          version=$(find . -name "westward-*" | sed 's|./westward-||' | sed 's|.jar||')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up GraalVM 25
