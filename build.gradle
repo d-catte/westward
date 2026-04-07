@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'io.github.onu_eccs1621_sp2025.westward'
-version = '1.0.0-beta.6'
+version = '1.0.0-beta.7'
 
 project.ext.lwjglVersion = "3.3.6"
 
