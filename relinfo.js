@@ -52,7 +52,7 @@ async function makeDownloadButtons() {
     }
     document.getElementById("macos").appendChild(macList);
 
-    if (release.assets.some(asset => asset.name === `westward-${release.tag_name}.jar`)) {
-        document.getElementById("jar").setAttribute("href", `${urlBase}/westward-${release.tag_name}.jar`);
+    if (release.assets.some(asset => asset.name === `westward-universal.jar`)) {
+        document.getElementById("jar").setAttribute("href", `${urlBase}/westward-universal.jar`);
     }
 }
