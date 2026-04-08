@@ -1,6 +1,8 @@
 use app_data::AppData;
+use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::egui;
 use eframe::egui::{Image, RichText, Vec2};
+use eframe::epaint::Color32;
 use egui_alignments::{center_horizontal, top_horizontal};
 use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use futures_util::StreamExt;
@@ -16,7 +18,7 @@ use std::io::{BufReader, BufWriter, Read};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
-use std::process::{Command, exit};
+use std::process::{Command, Output, exit};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 use tokio::runtime::Runtime;
@@ -241,34 +243,83 @@ pub async fn download_latest_westward(url: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn launch_westward() {
-    #[cfg(target_os = "windows")]
-    {
-        let path = APP_DATA.get_file_path("westward.exe").unwrap();
-        let exe = path.to_str().unwrap();
-        let mut cmd = Command::new(exe);
+fn launch_westward(ctx: &egui::Context, open_popup: &mut bool) {
+    let mut error_message: Option<String> = None;
+    if error_message.is_none() {
+        let result: Result<Output, std::io::Error> = std::panic::catch_unwind(|| {
+            #[cfg(target_os = "windows")]
+            {
+                let path = APP_DATA.get_file_path("westward.exe").unwrap();
+                let exe = path.to_str().unwrap();
+                let mut cmd = Command::new(exe);
 
-        // Detach from parent console
-        const DETACHED_PROCESS: u32 = 0x00000008;
-        const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
-        cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+                // Detach from parent console
+                const DETACHED_PROCESS: u32 = 0x00000008;
+                const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+                cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
 
-        cmd.spawn().expect("Failed to launch Westward");
+                // Capture stderr
+                cmd.output()
+            }
+
+            #[cfg(not(target_os = "windows"))]
+            {
+                let file = APP_DATA.get_file_path("westward").unwrap();
+                let exe = format!("{}", file.display());
+                let _ = Command::new("chmod").arg("+x").arg(&exe).status();
+
+                Command::new("setsid").arg(exe).output()
+            }
+        })
+        .unwrap_or_else(|_| Err(std::io::Error::other("Panic occurred")));
+
+        match result {
+            Ok(output) => {
+                if !output.status.success() {
+                    error_message = Some(String::from_utf8_lossy(&output.stderr).to_string());
+                    *open_popup = true;
+                } else {
+                    exit(0);
+                }
+            }
+            Err(e) => {
+                error_message = Some(format!("Failed to launch Westward: {}", e));
+                *open_popup = true;
+            }
+        }
     }
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        let file = APP_DATA.get_file_path("westward").unwrap();
-        let exe = format!("{}", file.display());
-        let _ = Command::new("chmod").arg("+x").arg(&exe).status();
+    if *open_popup {
+        egui::Window::new("Failed to launch Westward")
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.label("Westward failed to launch. Please report this issue.");
 
-        // Detach from parent terminal
-        Command::new("setsid")
-            .arg(exe)
-            .spawn()
-            .expect("Failed to launch Westward");
+                let error_clone = error_message.clone();
+                if let Some(msg) = error_message {
+                    ui.add_space(4.0);
+                    ui.colored_label(Color32::RED, msg);
+
+                    ui.horizontal(|ui| {
+                        if ui.button("Copy Message").clicked() {
+                            let mut ctx = ClipboardContext::new().unwrap();
+                            ctx.set_contents(error_clone.unwrap()).unwrap();
+                        }
+
+                        if ui.button("Report Issue").clicked() {
+                            let _ = open::that_detached(
+                                "https://github.com/YourUsername/Westward/issues",
+                            );
+                        }
+
+                        if ui.button("Close").clicked() {
+                            *open_popup = false;
+                        }
+                    });
+                }
+            });
     }
-    exit(0);
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -317,6 +368,7 @@ struct App {
     current_index: usize,
     last_switch_time: f64,
     transition_start: Option<f64>,
+    open_popup: bool,
 }
 
 impl App {
@@ -328,6 +380,7 @@ impl App {
             current_index: 0,
             last_switch_time: 0.0,
             transition_start: None,
+            open_popup: false,
         }
     }
 }
@@ -410,8 +463,9 @@ impl eframe::App for App {
                     } else if ui
                         .add(egui::Button::new("Play").min_size(button_size))
                         .clicked()
+                        && *status == Status::Default
                     {
-                        launch_westward();
+                        launch_westward(ctx, &mut self.open_popup);
                     }
 
                     if *status == Status::UpdateAvailable
